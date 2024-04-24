@@ -223,7 +223,13 @@ class MTCNN(nn.Module):
         if not self.selection_method:
             self.selection_method = 'largest' if self.select_largest else 'probability'
 
-    def forward(self, img, save_path=None, return_prob=False):
+    def forward(self,
+                img,
+                save_path=None,
+                return_prob=False,
+                return_box=False,
+                return_point=False,
+    ):
         """Run MTCNN face detection on a PIL image or numpy array. This method performs both
         detection and extraction of faces, returning tensors representing detected faces rather
         than the bounding boxes. To access bounding boxes, see the MTCNN.detect() method below.
@@ -264,10 +270,14 @@ class MTCNN(nn.Module):
         # Extract faces
         faces = self.extract(img, batch_boxes, save_path)
 
+        ret = (faces,)
         if return_prob:
-            return faces, batch_probs
-        else:
-            return faces
+            ret += (batch_probs,)
+        if return_box:
+            ret += (batch_boxes,)
+        if return_point:
+            ret += (batch_points,)
+        return ret
 
     def detect(self, img, landmarks=False):
         """Detect all faces in PIL image and return bounding boxes and optional facial landmarks.
@@ -323,7 +333,7 @@ class MTCNN(nn.Module):
             point = np.array(point)
             if len(box) == 0:
                 boxes.append(None)
-                probs.append([None])
+                probs.append(None)
                 points.append(None)
             elif self.select_largest:
                 box_order = np.argsort((box[:, 2] - box[:, 0]) * (box[:, 3] - box[:, 1]))[::-1]
@@ -403,7 +413,7 @@ class MTCNN(nn.Module):
             
             if boxes is None:
                 selected_boxes.append(None)
-                selected_probs.append([None])
+                selected_probs.append(None)
                 selected_points.append(None)
                 continue
             
@@ -441,19 +451,18 @@ class MTCNN(nn.Module):
             selected_points.append(point)
 
         if batch_mode:
-            selected_boxes = np.array(selected_boxes)
-            selected_probs = np.array(selected_probs)
-            selected_points = np.array(selected_points)
+            selected_boxes = np.array(selected_boxes, dtype=object)
+            selected_probs = np.array(selected_probs, dtype=object)
+            selected_points = np.array(selected_points, dtype=object)
         else:
             selected_boxes = selected_boxes[0]
-            selected_probs = selected_probs[0][0]
+            selected_probs = selected_probs[0]
             selected_points = selected_points[0]
 
         return selected_boxes, selected_probs, selected_points
 
     def extract(self, img, batch_boxes, save_path):
         # Determine if a batch or single image was passed
-        batch_mode = True
         if (
                 not isinstance(img, (list, tuple)) and
                 not (isinstance(img, np.ndarray) and len(img.shape) == 4) and
@@ -461,7 +470,6 @@ class MTCNN(nn.Module):
         ):
             img = [img]
             batch_boxes = [batch_boxes]
-            batch_mode = False
 
         # Parse save path(s)
         if save_path is not None:
@@ -492,15 +500,7 @@ class MTCNN(nn.Module):
                     face = fixed_image_standardization(face)
                 faces_im.append(face)
 
-            if self.keep_all:
-                faces_im = torch.stack(faces_im)
-            else:
-                faces_im = faces_im[0]
-
-            faces.append(faces_im)
-
-        if not batch_mode:
-            faces = faces[0]
+            faces.append(torch.stack(faces_im))
 
         return faces
 
