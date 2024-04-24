@@ -350,15 +350,6 @@ class MTCNN(nn.Module):
         probs = np.array(probs, dtype=object)
         points = np.array(points, dtype=object)
 
-        if (
-            not isinstance(img, (list, tuple)) and 
-            not (isinstance(img, np.ndarray) and len(img.shape) == 4) and
-            not (isinstance(img, torch.Tensor) and len(img.shape) == 4)
-        ):
-            boxes = boxes[0]
-            probs = probs[0]
-            points = points[0]
-
         if landmarks:
             return boxes, probs, points
 
@@ -396,17 +387,12 @@ class MTCNN(nn.Module):
         """
 
         #copying batch detection from extract, but would be easier to ensure detect creates consistent output.
-        batch_mode = True
         if (
                 not isinstance(imgs, (list, tuple)) and
                 not (isinstance(imgs, np.ndarray) and len(imgs.shape) == 4) and
                 not (isinstance(imgs, torch.Tensor) and len(imgs.shape) == 4)
         ):
             imgs = [imgs]
-            all_boxes = [all_boxes]
-            all_probs = [all_probs]
-            all_points = [all_points]
-            batch_mode = False
 
         selected_boxes, selected_probs, selected_points = [], [], []
         for boxes, points, probs, img in zip(all_boxes, all_points, all_probs, imgs):
@@ -450,14 +436,9 @@ class MTCNN(nn.Module):
             selected_probs.append(prob)
             selected_points.append(point)
 
-        if batch_mode:
-            selected_boxes = np.array(selected_boxes, dtype=object)
-            selected_probs = np.array(selected_probs, dtype=object)
-            selected_points = np.array(selected_points, dtype=object)
-        else:
-            selected_boxes = selected_boxes[0]
-            selected_probs = selected_probs[0]
-            selected_points = selected_points[0]
+        selected_boxes = np.array(selected_boxes, dtype=object)
+        selected_probs = np.array(selected_probs, dtype=object)
+        selected_points = np.array(selected_points, dtype=object)
 
         return selected_boxes, selected_probs, selected_points
 
@@ -469,7 +450,6 @@ class MTCNN(nn.Module):
                 not (isinstance(img, torch.Tensor) and len(img.shape) == 4)
         ):
             img = [img]
-            batch_boxes = [batch_boxes]
 
         # Parse save path(s)
         if save_path is not None:
