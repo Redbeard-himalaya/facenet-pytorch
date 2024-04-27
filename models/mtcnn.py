@@ -277,19 +277,71 @@ class MTCNN(nn.Module):
 
         # faces are faces of a batch of images, each element of faces contains detected faces
         # of a signle image. batch_points are points of each faces
+        # version 1: avg cost 0.350s per 500 heads
+        # if self.align:
+        #     aligned_faces = []
+        #     #import pdb; pdb.set_trace()
+        #     for img_faces, img_points in zip(faces, batch_points):
+        #         if img_faces is None:
+        #             aligned_faces.append(None)
+        #         else:
+        #             img_aligned_faces = []
+        #             for face, point in zip(img_faces, img_points):
+        #                 aligned_face, _, _ = alignment(face, point)
+        #                 img_aligned_faces.append(aligned_face)
+        #             aligned_faces.append(torch.stack(img_aligned_faces))
+        #     faces = aligned_faces
+
+        # version 2: avg cost 0.170s per 500 heads
         if self.align:
-            aligned_faces = []
-            #import pdb; pdb.set_trace()
+            # create batch data
+            face_batch = []
+            landmark_batch = []
             for img_faces, img_points in zip(faces, batch_points):
+                if img_faces is None:
+                    continue
+                face_batch.append(img_faces)
+                landmark_batch.append(img_points)
+            if len(face_batch) > 0:
+                face_batch = torch.cat(face_batch, axis=0)
+                landmark_batch = np.concatenate(landmark_batch, axis=0)
+                aligned_faces_batch = alignment(face_batch, landmark_batch)
+            aligned_faces = []
+            start_idx = 0
+            for img_faces in faces:
                 if img_faces is None:
                     aligned_faces.append(None)
                 else:
-                    img_aligned_faces = []
-                    for face, point in zip(img_faces, img_points):
-                        aligned_face, _, _ = alignment(face, point)
-                        img_aligned_faces.append(aligned_face)
-                    aligned_faces.append(torch.stack(img_aligned_faces))
+                    size = len(img_faces)
+                    aligned_faces.append(aligned_faces_batch[start_idx : start_idx+size])
+                    start_idx += size
             faces = aligned_faces
+
+        # version 3: avg cost 0.200s per 500 heads
+        # if self.align:
+        #     # create batch data
+        #     none_posits = []
+        #     for i, img_points in enumerate(batch_points):
+        #         if img_points is None:
+        #             none_posits.append(i)
+        #             faces[i] = torch.empty(1,3,160,160)
+        #             batch_points[i] = np.zeros((1,5,2))
+        #     face_batch = torch.cat(faces, axis=0)
+        #     landmark_batch = np.concatenate(batch_points, axis=0)
+        #     aligned_faces_batch, _ = alignment(face_batch, landmark_batch)
+        #     aligned_faces = []
+        #     none_idx = 0
+        #     start_idx = 0
+        #     none_posits_len = len(none_posits)
+        #     for i, img_faces in enumerate(faces):
+        #         size = len(img_faces)
+        #         if none_idx < none_posits_len and i == none_posits[none_idx]:
+        #             aligned_faces.append(None)
+        #             none_idx += 1
+        #         else:
+        #             aligned_faces.append(aligned_faces_batch[start_idx : start_idx+size])
+        #         start_idx += size
+        #     faces = aligned_faces
 
         if save_paths:
             if isinstance(save_paths, str):
@@ -520,7 +572,7 @@ class MTCNN(nn.Module):
 
 
 def fixed_image_standardization(image_tensor):
-    processed_tensor = (image_tensor - 127.5) / 128.0
+    processed_tensor = (image_tensor - 127.5) * 0.0078125
     return processed_tensor
 
 
