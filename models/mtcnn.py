@@ -229,7 +229,7 @@ class MTCNN(nn.Module):
 
     def forward(self,
                 img,
-                save_paths=None,
+                save_path=None,
                 return_prob=False,
                 return_box=False,
                 return_point=False,
@@ -242,11 +242,11 @@ class MTCNN(nn.Module):
             img {PIL.Image, np.ndarray, or list} -- A PIL image, np.ndarray, torch.Tensor, or list.
         
         Keyword Arguments:
-            save_paths {str} or {List[str]} -- An optional save path for the cropped image.
+            save_path {str} or {List[str]} -- An optional save path for the cropped image.
                 Note that when self.post_process=True, although the returned tensor is post
                  processed, the saved face image is not, so it is a true representation of the
                  face in the input image.
-                If `img` is a list of images, `save_paths` should be a list of equal length.
+                If `img` is a list of images, `save_path` should be a list of equal length.
                 (default: {None})
             return_prob {bool} -- Whether or not to return the detection probability.
                 (default: {False})
@@ -262,7 +262,7 @@ class MTCNN(nn.Module):
         Example:
         >>> from facenet_pytorch import MTCNN
         >>> mtcnn = MTCNN()
-        >>> face_tensor, prob = mtcnn(img, save_paths='face.png', return_prob=True)
+        >>> face_tensor, prob = mtcnn(img, save_path='face.png', return_prob=True)
         """
 
         # Detect faces
@@ -343,17 +343,21 @@ class MTCNN(nn.Module):
         #         start_idx += size
         #     faces = aligned_faces
 
-        if save_paths:
-            if isinstance(save_paths, str):
-                save_paths = [save_paths]
-            for imgs, save_path in zip(faces, save_paths):
+        if save_path:
+            if isinstance(save_path, str):
+                save_path = [save_path]
+            for imgs, save_path in zip(faces, save_path):
                 save_path = Path(save_path)
+                save_path.parent.mkdir(parents=True, exist_ok=True)
                 if imgs is None:
                     continue
                 for i, im in enumerate(imgs):
                     if self.post_process:
                         im = im * 128.0 + 127.5
-                    _save_path = save_path.parent/f"{save_path.stem}-{i}{save_path.suffix}"
+                    if i == 0:
+                        _save_path = save_path
+                    else:
+                        _save_path = save_path.parent/f"{save_path.stem}_{i}{save_path.suffix}"
                     tensor_to_pil_image(im.to(dtype=torch.uint8), "RGB").save(_save_path)
 
         ret = (faces,)
