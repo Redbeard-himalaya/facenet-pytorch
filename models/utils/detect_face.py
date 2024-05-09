@@ -1,5 +1,5 @@
 import torch
-from torch.nn.functional import interpolate
+from torchvision import transforms as T
 from torchvision.transforms import functional as F
 from torchvision.ops.boxes import batched_nms
 from PIL import Image
@@ -302,7 +302,7 @@ def rerec(bboxA):
 
 
 def imresample(img, sz):
-    im_data = interpolate(img, size=sz, mode="area")
+    im_data = T.Resize(sz, interpolation=T.InterpolationMode.BILINEAR)(img)
     return im_data
 
 
