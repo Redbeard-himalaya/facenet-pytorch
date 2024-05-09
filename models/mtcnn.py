@@ -239,7 +239,7 @@ class MTCNN(nn.Module):
         than the bounding boxes. To access bounding boxes, see the MTCNN.detect() method below.
         
         Arguments:
-            img {PIL.Image, np.ndarray, or list} -- A PIL image, np.ndarray, torch.Tensor, or list.
+            img {PIL.Image, np.ndarray, or list} -- A PIL image, np.ndarray, torch.Tensor (values are not scaled), or list.
         
         Keyword Arguments:
             save_path {str} or {List[str]} -- An optional save path for the cropped image.
@@ -264,6 +264,16 @@ class MTCNN(nn.Module):
         >>> mtcnn = MTCNN()
         >>> face_tensor, prob = mtcnn(img, save_path='face.png', return_prob=True)
         """
+
+        # create tensor view from (C x H x W) to (H x W x C)
+        if isinstance(img, torch.Tensor):
+            dim_len = len(img.shape)
+            if dim_len == 3:
+                img = img.permute(1, 2, 0)
+            elif dim_len == 4:
+                img = img.permute(0, 2, 3, 1)
+            else:
+                raise TypeError(f"torch img dim length {dim_len} is not 3 or 4")
 
         # Detect faces
         batch_boxes, batch_probs, batch_points = self.detect(img, landmarks=True)
