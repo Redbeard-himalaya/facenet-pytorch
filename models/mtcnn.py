@@ -6,6 +6,7 @@ from pathlib import Path
 
 from .alignment import alignment
 from .utils.detect_face import detect_face, extract_face
+from .utils.download import download_url_to_file
 from torchvision.transforms.functional import to_pil_image as tensor_to_pil_image
 
 
@@ -15,8 +16,9 @@ class PNet(nn.Module):
     Keyword Arguments:
         pretrained {bool} -- Whether or not to load saved pretrained weights (default: {True})
     """
+    PRETRAINED_URL = "https://raw.githubusercontent.com/Redbeard-himalaya/facenet-pytorch/v2.5.3-dev/data/pnet.pt"
 
-    def __init__(self, pretrained=True):
+    def __init__(self, pretrained: Path = None, progress: bool = True):
         super().__init__()
 
         self.conv1 = nn.Conv2d(3, 10, kernel_size=3)
@@ -33,8 +35,10 @@ class PNet(nn.Module):
         self.training = False
 
         if pretrained:
-            state_dict_path = os.path.join(os.path.dirname(__file__), '../data/pnet.pt')
-            state_dict = torch.load(state_dict_path)
+            if not pretrained.exists():
+                pretrained.parent.mkdir(parents=True, exist_ok=True)
+                download_url_to_file(self.PRETRAINED_URL, str(pretrained), progress=progress)
+            state_dict = torch.load(str(pretrained))
             self.load_state_dict(state_dict)
 
     def forward(self, x):
@@ -57,8 +61,9 @@ class RNet(nn.Module):
     Keyword Arguments:
         pretrained {bool} -- Whether or not to load saved pretrained weights (default: {True})
     """
+    PRETRAINED_URL = "https://raw.githubusercontent.com/Redbeard-himalaya/facenet-pytorch/v2.5.3-dev/data/rnet.pt"
 
-    def __init__(self, pretrained=True):
+    def __init__(self, pretrained: Path = None, progress: bool = True):
         super().__init__()
 
         self.conv1 = nn.Conv2d(3, 28, kernel_size=3)
@@ -78,8 +83,10 @@ class RNet(nn.Module):
         self.training = False
 
         if pretrained:
-            state_dict_path = os.path.join(os.path.dirname(__file__), '../data/rnet.pt')
-            state_dict = torch.load(state_dict_path)
+            if not pretrained.exists():
+                pretrained.parent.mkdir(parents=True, exist_ok=True)
+                download_url_to_file(self.PRETRAINED_URL, str(pretrained), progress=progress)
+            state_dict = torch.load(str(pretrained))
             self.load_state_dict(state_dict)
 
     def forward(self, x):
@@ -106,8 +113,9 @@ class ONet(nn.Module):
     Keyword Arguments:
         pretrained {bool} -- Whether or not to load saved pretrained weights (default: {True})
     """
+    PRETRAINED_URL = "https://raw.githubusercontent.com/Redbeard-himalaya/facenet-pytorch/v2.5.3-dev/data/onet.pt"
 
-    def __init__(self, pretrained=True):
+    def __init__(self, pretrained: Path = None, progress: bool = True):
         super().__init__()
 
         self.conv1 = nn.Conv2d(3, 32, kernel_size=3)
@@ -131,8 +139,10 @@ class ONet(nn.Module):
         self.training = False
 
         if pretrained:
-            state_dict_path = os.path.join(os.path.dirname(__file__), '../data/onet.pt')
-            state_dict = torch.load(state_dict_path)
+            if not pretrained.exists():
+                pretrained.parent.mkdir(parents=True, exist_ok=True)
+                download_url_to_file(self.PRETRAINED_URL, str(pretrained), progress=progress)
+            state_dict = torch.load(str(pretrained))
             self.load_state_dict(state_dict)
 
     def forward(self, x):
@@ -198,9 +208,9 @@ class MTCNN(nn.Module):
     """
 
     def __init__(
-        self, image_size=160, margin=0, min_face_size=20,
+        self, image_size=160, margin=0, min_face_size=20, model_dir: Path = None,
         thresholds=[0.6, 0.7, 0.7], factor=0.709, post_process=True, align=True,
-        select_largest=True, selection_method=None, keep_all=False, device=None
+        select_largest=True, selection_method=None, keep_all=False, device=None, progress=True,
     ):
         super().__init__()
 
@@ -215,9 +225,11 @@ class MTCNN(nn.Module):
         self.keep_all = keep_all
         self.selection_method = selection_method
 
-        self.pnet = PNet()
-        self.rnet = RNet()
-        self.onet = ONet()
+        if model_dir is None:
+            model_dir = Path.home() / ".face_search"
+        self.pnet = PNet(pretrained=model_dir / "1", progress=progress)
+        self.rnet = RNet(pretrained=model_dir / "2", progress=progress)
+        self.onet = ONet(pretrained=model_dir / "3", progress=progress)
 
         self.device = torch.device('cpu')
         if device is not None:

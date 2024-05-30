@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import requests
 from requests.adapters import HTTPAdapter
 
@@ -199,7 +200,7 @@ class InceptionResnetV1(nn.Module):
             initialized. (default: {None})
         dropout_prob {float} -- Dropout probability. (default: {0.6})
     """
-    def __init__(self, pretrained=None, classify=False, num_classes=None, dropout_prob=0.6, device=None):
+    def __init__(self, pretrained=None, model_dir: Path = None, classify=False, num_classes=None, dropout_prob=0.6, device=None, progress: bool = True):
         super().__init__()
 
         # Set simple attributes
@@ -259,7 +260,7 @@ class InceptionResnetV1(nn.Module):
 
         if pretrained is not None:
             self.logits = nn.Linear(512, tmp_classes)
-            load_weights(self, pretrained)
+            load_weights(self, pretrained, model_dir=model_dir, progress=progress)
 
         if self.classify and self.num_classes is not None:
             self.logits = nn.Linear(512, self.num_classes)
@@ -302,7 +303,7 @@ class InceptionResnetV1(nn.Module):
         return x
 
 
-def load_weights(mdl, name):
+def load_weights(mdl, name, model_dir: Path = None, progress: bool = True):
     """Download pretrained state_dict and load into model.
 
     Arguments:
@@ -313,20 +314,21 @@ def load_weights(mdl, name):
         ValueError: If 'pretrained' not equal to 'vggface2' or 'casia-webface'.
     """
     if name == 'vggface2':
-        path = 'https://github.com/timesler/facenet-pytorch/releases/download/v2.2.9/20180402-114759-vggface2.pt'
+        path = 'https://github.com/Redbeard-himalaya/facenet-pytorch/releases/download/v2.2.9/20180402-114759-vggface2.pt'
     elif name == 'casia-webface':
-        path = 'https://github.com/timesler/facenet-pytorch/releases/download/v2.2.9/20180408-102900-casia-webface.pt'
+        path = 'https://github.com/Redbeard-himalaya/facenet-pytorch/releases/download/v2.2.9/20180408-102900-casia-webface.pt'
     else:
         raise ValueError('Pretrained models only exist for "vggface2" and "casia-webface"')
 
-    model_dir = os.path.join(get_torch_home(), 'checkpoints')
-    os.makedirs(model_dir, exist_ok=True)
+    if model_dir is None:
+        model_dir = Path.home() / ".face_search"
+    model_dir.mkdir(parents=True, exist_ok=True)
 
-    cached_file = os.path.join(model_dir, os.path.basename(path))
-    if not os.path.exists(cached_file):
-        download_url_to_file(path, cached_file)
+    cached_file = model_dir / "4"
+    if not cached_file.exists():
+        download_url_to_file(path, str(cached_file), progress=progress)
 
-    state_dict = torch.load(cached_file)
+    state_dict = torch.load(str(cached_file))
     mdl.load_state_dict(state_dict)
 
 

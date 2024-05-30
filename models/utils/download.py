@@ -55,6 +55,9 @@ def download_url_to_file(url, dst, hash_prefix=None, progress=True):
     Example:
         >>> torch.hub.download_url_to_file('https://s3.amazonaws.com/pytorch/models/resnet18-5c106cde.pth', '/tmp/temporary_file')
     """
+    if progress:
+        print(f"download {url} to {dst}")
+
     file_size = None
     # We use a different API for python2 since urllib(2) doesn't recognize the CA
     # certificates in older Python
