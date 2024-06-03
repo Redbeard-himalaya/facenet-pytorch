@@ -31,14 +31,14 @@ def batch_rotate(x: torch.Tensor, degree: torch.Tensor) -> torch.Tensor:
     c = torch.cos(angle)
     rot_mat = torch.stack((torch.stack([c, -s], dim=1),
                            torch.stack([s, c], dim=1)), dim=1)
-    zeros = torch.zeros(rot_mat.size(0), 2).unsqueeze(2)
+    zeros = torch.zeros(rot_mat.size(0), 2).unsqueeze(2).to(rot_mat.device)
     aff_mat = torch.cat((rot_mat, zeros), 2)
     grid = F.affine_grid(aff_mat, x.size(), align_corners=True)
     x = F.grid_sample(x, grid, align_corners=True)
     return x
 
 
-def alignment(img: torch.Tensor, landmark: np.ndarray) -> Tuple[torch.Tensor, float, int]:
+def alignment(img: torch.Tensor, landmark: torch.Tensor) -> Tuple[torch.Tensor, float, int]:
     """
     Alignma given face with respect to the left and right eye coordinates.
     Left eye is the eye appearing on the left (right eye of the person). Left top point is (0, 0)
@@ -49,8 +49,8 @@ def alignment(img: torch.Tensor, landmark: np.ndarray) -> Tuple[torch.Tensor, fl
 
     if not isinstance(img, torch.Tensor):
         raise TypeError(f"param img ({type(img)}) is not torch.Tensor")
-    if not isinstance(landmark, np.ndarray):
-        raise TypeError(f"param landmark ({type(landmark)}) is not numpy.ndarray")
+    if not isinstance(landmark, torch.Tensor):
+        raise TypeError(f"param landmark ({type(landmark)}) is not torch.Tensor")
     img_dim = img.dim()
     lm_dim = len(landmark.shape)
     if img_dim < 3 or 4 < img_dim:
@@ -62,13 +62,14 @@ def alignment(img: torch.Tensor, landmark: np.ndarray) -> Tuple[torch.Tensor, fl
     if img_dim == 3:
         img = img.unsqueeze(0)
     if lm_dim == 2:
-        landmark = np.expand_dims(landmark, axis=0)
+        #landmark = np.expand_dims(landmark, axis=0)
+        landmark = landmark.unsqueeze(0)
 
     # calculate angle in batch
-    left_eye_x = torch.tensor(landmark[:,0,0].astype(np.float32)) # x batch
-    left_eye_y = torch.tensor(landmark[:,0,1].astype(np.float32)) # y batch
-    right_eye_x = torch.tensor(landmark[:,1,0].astype(np.float32)) # x batch
-    right_eye_y = torch.tensor(landmark[:,1,1].astype(np.float32)) # y batch
+    left_eye_x = landmark[:,0,0].type(torch.float32) # x batch
+    left_eye_y = landmark[:,0,1].type(torch.float32) # y batch
+    right_eye_x = landmark[:,1,0].type(torch.float32) # x batch
+    right_eye_y = landmark[:,1,1].type(torch.float32) # y batch
     angle = torch.complex(right_eye_x - left_eye_x,
                           right_eye_y - left_eye_y).angle() * 180 / torch.pi
     # rotate in batch

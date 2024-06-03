@@ -319,7 +319,7 @@ def crop_resize(img, box, image_size):
         out = imresample(
             img.permute(2, 0, 1).unsqueeze(0).float(),
             (image_size, image_size)
-        ).byte().squeeze(0).permute(1, 2, 0)
+        ).byte().squeeze(0)
     else:
         out = img.crop(box).copy().resize((image_size, image_size), Image.BILINEAR)
     return out
@@ -373,6 +373,9 @@ def extract_face(img, box, image_size=160, margin=0, save_path=None):
         os.makedirs(os.path.dirname(save_path) + "/", exist_ok=True)
         save_img(face, save_path)
 
-    face = F.to_tensor(np.float32(face))
+    if isinstance(face, torch.Tensor):
+        face = face.type(torch.float32)
+    else:
+        face = F.to_tensor(np.float32(face))
 
     return face

@@ -323,10 +323,10 @@ class MTCNN(nn.Module):
                 if img_faces is None:
                     continue
                 face_batch.append(img_faces)
-                landmark_batch.append(img_points)
+                landmark_batch.append(img_points.astype(np.float32))
             if len(face_batch) > 0:
                 face_batch = torch.cat(face_batch, axis=0)
-                landmark_batch = np.concatenate(landmark_batch, axis=0)
+                landmark_batch = torch.tensor(np.concatenate(landmark_batch, axis=0)).to(self.device)
                 aligned_faces_batch = alignment(face_batch, landmark_batch)
             aligned_faces = []
             start_idx = 0
