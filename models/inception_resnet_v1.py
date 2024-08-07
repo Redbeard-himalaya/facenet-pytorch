@@ -328,7 +328,7 @@ def load_weights(mdl, name, model_dir: Path = None, progress: bool = True):
     if not cached_file.exists():
         download_url_to_file(path, str(cached_file), progress=progress)
 
-    state_dict = torch.load(str(cached_file))
+    state_dict = torch.load(str(cached_file), weights_only=True)
     mdl.load_state_dict(state_dict)
 
 

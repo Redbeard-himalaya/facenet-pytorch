@@ -38,7 +38,7 @@ class PNet(nn.Module):
             if not pretrained.exists():
                 pretrained.parent.mkdir(parents=True, exist_ok=True)
                 download_url_to_file(self.PRETRAINED_URL, str(pretrained), progress=progress)
-            state_dict = torch.load(str(pretrained))
+            state_dict = torch.load(str(pretrained), weights_only=True)
             self.load_state_dict(state_dict)
 
     def forward(self, x):
@@ -86,7 +86,7 @@ class RNet(nn.Module):
             if not pretrained.exists():
                 pretrained.parent.mkdir(parents=True, exist_ok=True)
                 download_url_to_file(self.PRETRAINED_URL, str(pretrained), progress=progress)
-            state_dict = torch.load(str(pretrained))
+            state_dict = torch.load(str(pretrained), weights_only=True)
             self.load_state_dict(state_dict)
 
     def forward(self, x):
@@ -142,7 +142,7 @@ class ONet(nn.Module):
             if not pretrained.exists():
                 pretrained.parent.mkdir(parents=True, exist_ok=True)
                 download_url_to_file(self.PRETRAINED_URL, str(pretrained), progress=progress)
-            state_dict = torch.load(str(pretrained))
+            state_dict = torch.load(str(pretrained), weights_only=True)
             self.load_state_dict(state_dict)
 
     def forward(self, x):
